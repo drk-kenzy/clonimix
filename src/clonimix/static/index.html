@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clonimix</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1b;--muted:#6b6a65;--line:#e3e1db;--accent:#1f6f5c;--accent-ink:#fff;--danger:#b3261e;--rec:#d33a2c}
+@media (prefers-color-scheme:dark){:root{--bg:#161615;--card:#201f1e;--ink:#eceae4;--muted:#9a978f;--line:#34322f;--accent:#4fb59b;--accent-ink:#0d1f1a;--danger:#f08a82;--rec:#ff6a5c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 64px}
+header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+h1{font-size:28px;margin:0;letter-spacing:-.02em}
+.sub{color:var(--muted)}
+h2{font-size:18px;margin:0 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:16px}
+label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
+input[type=text],textarea,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:120px;resize:vertical}
+button{font:inherit;padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.danger{color:var(--danger)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 18px}
+.check{display:flex;gap:8px;align-items:flex-start;margin:10px 0;color:var(--ink);font-size:15px}
+.check input{margin-top:5px}
+.meter{height:8px;background:var(--line);border-radius:4px;overflow:hidden;flex:1;min-width:120px}
+.meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .08s}
+.rec{background:var(--rec);color:#fff;border-color:var(--rec)}
+.timer{font-variant-numeric:tabular-nums;min-width:48px}
+.voice{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.voice:first-of-type{border-top:0}
+.voice small{color:var(--muted)}
+.msg{margin-top:10px;font-size:14px;color:var(--muted);white-space:pre-wrap}
+.msg.err{color:var(--danger)}
+audio{width:100%;margin-top:8px}
+.val{float:right;color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.hint{font-size:13px;color:var(--muted);margin:2px 0 6px}
+.out{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.out audio{flex:1 1 260px;margin:0}
+details summary{cursor:pointer;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Clonimix</h1><span class="sub">Clone ta voix, en local. Rien ne quitte cet ordinateur.</span></header>
+
+<section class="card" id="enroll">
+  <h2>1. Enregistrer une voix</h2>
+  <div class="row">
+    <button id="recBtn" class="primary">● Enregistrer</button>
+    <span class="timer" id="timer">0:00</span>
+    <div class="meter"><i id="level"></i></div>
+    <span class="sub">ou</span>
+    <label for="file" style="margin:0"><button type="button" onclick="document.getElementById('file').click()">Choisir un fichier audio</button></label>
+    <input type="file" id="file" accept="audio/*" hidden>
+  </div>
+  <p class="hint">Parle 15 à 30 secondes, naturellement, micro à 10-15 cm, pièce calme, sans musique. Lis plusieurs phrases variées plutôt qu'un ton monotone.</p>
+  <audio id="preview" controls hidden></audio>
+  <div id="sample" class="msg"></div>
+  <div class="grid">
+    <div><label for="vname">Nom de la voix</label><input type="text" id="vname" placeholder="moi" maxlength="40"></div>
+  </div>
+  <label class="check"><input type="checkbox" id="consent"><span>Je confirme que c'est <b>ma propre voix</b>, ou celle d'une personne qui m'a donné son accord explicite.</span></label>
+  <label class="check"><input type="checkbox" id="denoiseIn"><span>Réduire le bruit de fond de l'enregistrement <small class="sub">(seulement s'il est vraiment bruité : peut abîmer le timbre)</small></span></label>
+  <button class="primary" id="saveBtn" disabled>Enregistrer cette voix</button>
+  <div class="msg" id="enrollMsg"></div>
+</section>
+
+<section class="card">
+  <h2>2. Mes voix</h2>
+  <div id="voices"><span class="sub">Chargement…</span></div>
+</section>
+
+<section class="card">
+  <h2>3. Faire parler une voix</h2>
+  <div class="grid">
+    <div><label for="voice">Voix</label><select id="voice"></select></div>
+    <div><label for="lang">Langue</label><select id="lang"></select></div>
+  </div>
+  <label for="text">Texte à dire</label>
+  <textarea id="text" placeholder="Écris ici ce que ta voix doit dire…"></textarea>
+
+  <details open>
+    <summary>Réglages de la voix</summary>
+    <div class="grid">
+      <div><label>Expressivité <span class="val" id="v_exaggeration"></span></label>
+        <input type="range" id="exaggeration" min="0" max="1.5" step="0.05" value="0.5">
+        <div class="hint">Plus haut : plus de relief et d'émotion. Trop haut : ça force.</div></div>
+      <div><label>Guidage (cfg) <span class="val" id="v_cfg_weight"></span></label>
+        <input type="range" id="cfg_weight" min="0" max="1" step="0.05" value="0.5">
+        <div class="hint">Plus bas : débit plus naturel et moins scolaire.</div></div>
+      <div><label>Variation <span class="val" id="v_temperature"></span></label>
+        <input type="range" id="temperature" min="0.3" max="1.3" step="0.05" value="0.8">
+        <div class="hint">Plus haut : plus de variété, plus de risques d'accrocs.</div></div>
+      <div><label>Pause entre phrases <span class="val" id="v_pause_s"></span></label>
+        <input type="range" id="pause_s" min="0" max="1.5" step="0.05" value="0.25">
+        <div class="hint">En secondes.</div></div>
+      <div><label>Meilleur de N tirages <span class="val" id="v_best_of"></span></label>
+        <input type="range" id="best_of" min="1" max="5" step="1" value="1">
+        <div class="hint">Garde le tirage le plus ressemblant. N fois plus lent.</div></div>
+    </div>
+  </details>
+  <details>
+    <summary>Retouches sur l'audio généré</summary>
+    <div class="grid">
+      <div><label>Vitesse <span class="val" id="v_speed"></span></label>
+        <input type="range" id="speed" min="0.8" max="1.2" step="0.05" value="1">
+        <div class="hint">Change le débit sans changer la hauteur.</div></div>
+      <div><label class="check"><input type="checkbox" id="denoiseOut"><span>Nettoyer le souffle de fond du résultat</span></label>
+        <div class="hint">Atténue le bruit de fond de synthèse (léger risque sur le timbre).</div></div>
+    </div>
+  </details>
+
+  <div class="row" style="margin-top:14px">
+    <button class="primary" id="goBtn">Générer</button>
+    <span class="sub" id="status"></span>
+  </div>
+  <div class="msg" id="log"></div>
+  <audio id="result" controls hidden></audio>
+  <div id="resultLinks" class="row" style="margin-top:6px"></div>
+</section>
+
+<section class="card">
+  <h2>Mes audios générés</h2>
+  <div id="outs"><span class="sub">Aucun pour l'instant.</span></div>
+</section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = s => Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+
+async function api(path, opts){
+  const r = await fetch(path, opts);
+  const j = await r.json().catch(()=>({error:"Réponse invalide."}));
+  if(!r.ok) throw new Error(j.error || "Erreur "+r.status);
+  return j;
+}
+
+/* ---------- Enregistrement micro (WAV encodé dans le navigateur) ---------- */
+let rec = null, blob = null, blobExt = "wav", blobUrl = null;
+function setBlob(b, ext, label){
+  blob = b; blobExt = ext;
+  if(blobUrl) URL.revokeObjectURL(blobUrl);
+  blobUrl = URL.createObjectURL(b);
+  $("preview").src = blobUrl; $("preview").hidden = false;
+  $("sample").textContent = label;
+  checkSave();
+}
+function encodeWav(chunks, rate){
+  let n = chunks.reduce((a,c)=>a+c.length,0), buf = new DataView(new ArrayBuffer(44+n*2)), o = 0;
+  const w = (s)=>{for(const ch of s) buf.setUint8(o++, ch.charCodeAt(0));};
+  w("RIFF"); buf.setUint32(o,36+n*2,true); o+=4; w("WAVEfmt "); buf.setUint32(o,16,true); o+=4;
+  buf.setUint16(o,1,true); o+=2; buf.setUint16(o,1,true); o+=2; buf.setUint32(o,rate,true); o+=4;
+  buf.setUint32(o,rate*2,true); o+=4; buf.setUint16(o,2,true); o+=2; buf.setUint16(o,16,true); o+=2;
+  w("data"); buf.setUint32(o,n*2,true); o+=4;
+  for(const c of chunks) for(let i=0;i<c.length;i++){ const v=Math.max(-1,Math.min(1,c[i])); buf.setInt16(o, v<0?v*0x8000:v*0x7fff, true); o+=2; }
+  return new Blob([buf], {type:"audio/wav"});
+}
+async function startRec(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    const ctx = new AudioContext(), src = ctx.createMediaStreamSource(stream);
+    const proc = ctx.createScriptProcessor(4096,1,1), chunks = [];
+    proc.onaudioprocess = e => {
+      const d = e.inputBuffer.getChannelData(0); chunks.push(new Float32Array(d));
+      let p = 0; for(let i=0;i<d.length;i++) p = Math.max(p, Math.abs(d[i]));
+      $("level").style.width = Math.min(100,p*140)+"%";
+    };
+    src.connect(proc); proc.connect(ctx.destination);
+    const t0 = Date.now();
+    const tick = setInterval(()=>{ const s=(Date.now()-t0)/1000; $("timer").textContent=fmt(s); if(s>=30) stopRec(); },200);
+    rec = {stream, ctx, proc, src, chunks, tick, t0};
+    $("recBtn").textContent = "■ Arrêter"; $("recBtn").classList.add("rec");
+  }catch(e){ $("enrollMsg").className="msg err"; $("enrollMsg").textContent="Micro inaccessible : "+e.message+" (autorise le micro dans le navigateur)."; }
+}
+async function stopRec(){
+  if(!rec) return;
+  const r = rec; rec = null; clearInterval(r.tick);
+  r.proc.disconnect(); r.src.disconnect(); r.stream.getTracks().forEach(t=>t.stop());
+  const secs = (Date.now()-r.t0)/1000, rate = r.ctx.sampleRate; await r.ctx.close();
+  $("recBtn").textContent = "● Enregistrer"; $("recBtn").classList.remove("rec"); $("level").style.width="0";
+  setBlob(encodeWav(r.chunks, rate), "wav", `Enregistrement de ${secs.toFixed(1)} s. Écoute-le avant de l'enregistrer.` + (secs<10?" Un peu court : vise 15 à 30 s.":""));
+}
+$("recBtn").onclick = () => rec ? stopRec() : startRec();
+$("file").onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  const ext = (f.name.split(".").pop()||"wav").toLowerCase();
+  setBlob(f, ext, `Fichier : ${f.name}`);
+};
+function checkSave(){ $("saveBtn").disabled = !(blob && $("consent").checked && /^[A-Za-z0-9_-]{1,40}$/.test($("vname").value)); }
+["consent","vname"].forEach(id => $(id).addEventListener("input", checkSave));
+$("saveBtn").onclick = async () => {
+  const msg = $("enrollMsg"); msg.className="msg"; msg.textContent="Enregistrement…"; $("saveBtn").disabled = true;
+  try{
+    const q = new URLSearchParams({name:$("vname").value, confirm:"1", denoise:$("denoiseIn").checked?"1":"0", ext:blobExt});
+    const j = await api("/api/enroll?"+q, {method:"POST", body:blob});
+    msg.textContent = `Voix « ${j.voice.name} » enregistrée (${j.voice.duration_s} s).`;
+    await loadVoices(j.voice.name);
+  }catch(e){ msg.className="msg err"; msg.textContent = e.message; }
+  checkSave();
+};
+
+/* ---------- Voix ---------- */
+async function loadVoices(select){
+  const j = await api("/api/voices");
+  const box = $("voices"); box.innerHTML = "";
+  if(!j.voices.length) box.innerHTML = '<span class="sub">Aucune voix. Enregistre-en une ci-dessus.</span>';
+  for(const v of j.voices){
+    const d = document.createElement("div"); d.className = "voice";
+    const opt = v.params && Object.keys(v.params).length ? " · réglages optimisés" : "";
+    d.innerHTML = `<div><b></b><br><small>${v.duration_s} s${opt}</small></div><div class="row"><audio controls preload="none" style="width:240px;margin:0"></audio><button class="danger">Supprimer</button></div>`;
+    d.querySelector("b").textContent = v.name;
+    d.querySelector("audio").src = `/api/voice/${v.name}/reference.wav`;
+    d.querySelector("button").onclick = async () => {
+      if(!confirm(`Supprimer la voix « ${v.name} » ? C'est définitif.`)) return;
+      await api(`/api/voices/${v.name}/delete`, {method:"POST"}); loadVoices();
+    };
+    box.appendChild(d);
+  }
+  const sel = $("voice"), prev = select || sel.value;
+  sel.innerHTML = j.voices.map(v=>`<option></option>`).join("");
+  [...sel.options].forEach((o,i)=>{ o.value=o.textContent=j.voices[i].name; });
+  if(prev && [...sel.options].some(o=>o.value===prev)) sel.value = prev;
+  if($("lang").options.length===0){ $("lang").innerHTML = j.langs.map(l=>`<option>${l}</option>`).join(""); $("lang").value="fr"; }
+  applyVoiceParams(j.voices);
+  $("goBtn").disabled = !j.voices.length;
+  window._voices = j.voices;
+}
+function applyVoiceParams(vs){
+  const v = (vs||window._voices||[]).find(x=>x.name===$("voice").value);
+  if(v && v.params) for(const k of ["exaggeration","cfg_weight","temperature","pause_s"]) if(k in v.params){ $(k).value = v.params[k]; showVal(k); }
+}
+$("voice").onchange = () => applyVoiceParams();
+
+/* ---------- Curseurs ---------- */
+function showVal(id){ $("v_"+id).textContent = id==="speed" ? "×"+(+$(id).value).toFixed(2) : $(id).value; }
+["exaggeration","cfg_weight","temperature","pause_s","best_of","speed"].forEach(id=>{ showVal(id); $(id).oninput = ()=>showVal(id); });
+
+/* ---------- Génération ---------- */
+$("goBtn").onclick = async () => {
+  const text = $("text").value.trim();
+  if(!text){ $("log").className="msg err"; $("log").textContent="Écris un texte."; return; }
+  $("goBtn").disabled = true; $("result").hidden = true; $("resultLinks").innerHTML = ""; $("log").className="msg";
+  const body = {text, voice:$("voice").value, lang:$("lang").value, denoise:$("denoiseOut").checked};
+  for(const k of ["exaggeration","cfg_weight","temperature","pause_s","best_of","speed"]) body[k] = +$(k).value;
+  const t0 = Date.now();
+  try{
+    const {job} = await api("/api/say", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+    for(;;){
+      await new Promise(r=>setTimeout(r,1500));
+      const j = await api("/api/job/"+job);
+      const labels = {queued:"En attente", loading:"Chargement du modèle", running:"Génération en cours", done:"Terminé", error:"Erreur"};
+      $("status").textContent = `${labels[j.status]||j.status} · ${fmt((Date.now()-t0)/1000)}`;
+      $("log").textContent = (j.log||[]).slice(-6).join("\n");
+      if(j.status==="error") throw new Error(j.error);
+      if(j.status==="done"){
+        $("status").textContent = `Terminé en ${fmt((Date.now()-t0)/1000)} · ${j.seconds} s d'audio`;
+        $("result").src = "/api/out/"+j.file; $("result").hidden = false; $("result").play().catch(()=>{});
+        $("resultLinks").innerHTML = `<a href="/api/out/${j.file}" download="${j.file}"><button>Télécharger</button></a>`;
+        loadOuts(); break;
+      }
+    }
+  }catch(e){ $("log").className="msg err"; $("log").textContent = e.message; $("status").textContent=""; }
+  $("goBtn").disabled = false;
+};
+
+async function loadOuts(){
+  const j = await api("/api/outputs"), box = $("outs");
+  if(!j.files.length){ box.innerHTML = '<span class="sub">Aucun pour l\'instant.</span>'; return; }
+  box.innerHTML = "";
+  for(const f of j.files){
+    const d = document.createElement("div"); d.className = "out";
+    d.innerHTML = `<small class="sub"></small><audio controls preload="none"></audio><span class="row"><a download><button>Télécharger</button></a><button class="danger">Supprimer</button></span>`;
+    d.querySelector("small").textContent = f;
+    d.querySelector("audio").src = "/api/out/"+f;
+    const a = d.querySelector("a"); a.href = "/api/out/"+f; a.setAttribute("download", f);
+    d.querySelector(".danger").onclick = async()=>{ await api(`/api/out/${f}/delete`,{method:"POST"}); loadOuts(); };
+    box.appendChild(d);
+  }
+}
+loadVoices().catch(e=>{ $("voices").textContent = e.message; });
+loadOuts();
+</script>
+</body>
+</html>

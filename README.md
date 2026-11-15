@@ -7,7 +7,7 @@ Clonimix s'appuie sur [Chatterbox](https://github.com/resemble-ai/chatterbox) (R
 de synthèse vocale multilingue (français inclus) qui clone une voix à partir de quelques secondes d'audio.
 Il fournit en plus :
 
-- une **CLI** simple (`enroll`, `say`, `session`…) ;
+- une **CLI** simple (`enroll`, `say`, `session`…) et une **interface web locale** (`clonimix web`) ;
 - des outils pour **améliorer le clone** (choix de la meilleure référence, réglage de l'expressivité, sélection du meilleur tirage) ;
 - une **compétence Claude** : tu dis « clone ma voix avec ce fichier » et Claude fait le reste.
 
@@ -49,6 +49,14 @@ clonimix remove moi
 ```
 
 Texte long : `clonimix say --file texte.txt --voice moi`. Autre langue : `--lang en`, `--lang es`…
+
+### Interface web (enregistrer au micro, gérer, générer)
+
+```bash
+clonimix web
+```
+
+Ouvre `http://127.0.0.1:8765` dans ton navigateur : enregistre ta voix directement au micro (ou importe un fichier), gère tes voix, écris un texte, règle l'expressivité, la vitesse, le nettoyage du son, puis écoute et télécharge le résultat. Le serveur n'écoute que sur ta machine (`127.0.0.1`).
 
 ### Mode session (plusieurs textes sans recharger le modèle)
 

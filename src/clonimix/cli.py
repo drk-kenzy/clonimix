@@ -229,6 +229,13 @@ def cmd_remove(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_web(args: argparse.Namespace) -> int:
+    from .web import serve
+
+    serve(port=args.port, device=args.device, open_browser=not args.no_browser)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="clonimix", description="Clone ta propre voix, en local."
@@ -252,6 +259,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Réduit le bruit de fond (désactivé par défaut : peut abîmer le timbre)",
     )
     p.set_defaults(func=cmd_enroll)
+
+    p = sub.add_parser("web", help="Interface web locale (enregistrer, gérer, générer)")
+    p.add_argument("--port", type=int, default=8765)
+    p.add_argument("--device", help="cpu, cuda ou mps (auto par défaut)")
+    p.add_argument("--no-browser", action="store_true", help="N'ouvre pas le navigateur")
+    p.set_defaults(func=cmd_web)
 
     p = sub.add_parser("say", help="Génère un audio avec une voix enregistrée")
     p.add_argument("text", nargs="?", help="Texte à dire")
