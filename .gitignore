@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.egg-info/
+# Données personnelles : ne jamais publier
+voices/
+outputs/
+*.wav
+*.mp3
+*.m4a

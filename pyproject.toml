@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clonimix"
+version = "0.1.0"
+description = "Clone ta propre voix en local, simplement. Open source, sans cloud."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "chatterbox-tts",
+    "numpy",
+    "soundfile",
+    "librosa",
+    "noisereduce",
+    # Le filigrane Perth (utilisé par Chatterbox) a besoin de pkg_resources,
+    # retiré des setuptools récents.
+    "setuptools<81",
+]
+
+[project.scripts]
+clonimix = "clonimix.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
