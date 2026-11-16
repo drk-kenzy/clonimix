@@ -8,6 +8,7 @@ de synthèse vocale multilingue (français inclus) qui clone une voix à partir 
 Il fournit en plus :
 
 - une **CLI** simple (`enroll`, `say`, `session`…) et une **interface web locale** (`clonimix web`) ;
+- une **traduction locale facultative** du texte avant lecture ;
 - des outils pour **améliorer le clone** (choix de la meilleure référence, réglage de l'expressivité, sélection du meilleur tirage) ;
 - une **compétence Claude** : tu dis « clone ma voix avec ce fichier » et Claude fait le reste.
 
@@ -48,7 +49,20 @@ clonimix list
 clonimix remove moi
 ```
 
-Texte long : `clonimix say --file texte.txt --voice moi`. Autre langue : `--lang en`, `--lang es`…
+Texte long : `clonimix say --file texte.txt --voice moi`.
+
+### Autres langues et traduction
+
+23 langues : ar, da, de, el, en, es, fi, fr, he, hi, it, ja, ko, ms, nl, no, pl, pt, ru, sv, sw, tr, zh. `--lang en` règle la prononciation : le texte doit déjà être écrit dans cette langue.
+
+Pour écrire en français et faire dire le texte dans une autre langue, active la traduction locale (Argos Translate, hors ligne) :
+
+```bash
+pip install -e ".[translate]"
+clonimix say "Bonjour, ceci est ma voix." --voice moi --lang en --translate-from fr -o hello.wav
+```
+
+Un petit modèle (environ 100 Mo) se télécharge la première fois pour chaque langue, puis tout fonctionne hors ligne. La traduction passe par l'anglais, sa qualité varie selon les langues (bonne pour les langues européennes, plus approximative pour d'autres comme le swahili). Ta voix dans une autre langue garde son timbre, mais peut garder un accent.
 
 ### Interface web (enregistrer au micro, gérer, générer)
 
@@ -56,7 +70,7 @@ Texte long : `clonimix say --file texte.txt --voice moi`. Autre langue : `--lang
 clonimix web
 ```
 
-Ouvre `http://127.0.0.1:8765` dans ton navigateur : enregistre ta voix directement au micro (ou importe un fichier), gère tes voix, écris un texte, règle l'expressivité, la vitesse, le nettoyage du son, puis écoute et télécharge le résultat. Le serveur n'écoute que sur ta machine (`127.0.0.1`).
+Ouvre `http://127.0.0.1:8765` dans ton navigateur : enregistre ta voix directement au micro (ou importe un fichier), gère tes voix, écris un texte (avec traduction automatique si tu veux), règle l'expressivité, la vitesse, le nettoyage du son, puis écoute et télécharge le résultat. Le serveur n'écoute que sur ta machine (`127.0.0.1`).
 
 ### Mode session (plusieurs textes sans recharger le modèle)
 

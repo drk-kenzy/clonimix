@@ -21,7 +21,13 @@ from . import voices
 
 STATIC = Path(__file__).parent / "static"
 MAX_UPLOAD = 60 * 1024 * 1024
-LANGS = ["fr", "en", "es", "de", "it", "pt", "nl", "pl", "ru", "tr", "ar", "zh", "ja", "ko", "hi"]
+LANGS = {
+    "fr": "Français", "en": "Anglais", "es": "Espagnol", "de": "Allemand", "it": "Italien",
+    "pt": "Portugais", "nl": "Néerlandais", "pl": "Polonais", "ru": "Russe", "tr": "Turc",
+    "ar": "Arabe", "zh": "Chinois", "ja": "Japonais", "ko": "Coréen", "hi": "Hindi",
+    "da": "Danois", "el": "Grec", "fi": "Finnois", "he": "Hébreu", "ms": "Malais",
+    "no": "Norvégien", "sv": "Suédois", "sw": "Swahili",
+}
 
 JOBS: dict[str, dict] = {}
 QUEUE: "queue.Queue[tuple[str, dict]]" = queue.Queue()
@@ -74,6 +80,14 @@ def _run_job(job_id: str, req: dict) -> None:
             log("Chargement du modèle (une seule fois, la première génération est plus longue)…")
             STATE["engine"] = Engine(device=STATE["device"])
             STATE["engine"]._load()
+        text = req["text"]
+        if req["translate_from"] and req["translate_from"] != req["lang"]:
+            from . import translate
+
+            job["status"] = "translating"
+            text = translate.translate(text, req["translate_from"], req["lang"], log=log)
+            job["translated"] = text
+            log(f"Texte traduit : {text}")
         job["status"] = "running"
         voice = req["voice"]
         params = _params_for(
@@ -81,7 +95,7 @@ def _run_job(job_id: str, req: dict) -> None:
             {k: req[k] for k in ("exaggeration", "cfg_weight", "temperature", "pause_s")},
         )
         signal, sr = STATE["engine"].synthesize(
-            req["text"],
+            text,
             voices.reference_path(voice),
             lang=req["lang"],
             best_of=req["best_of"],
@@ -238,7 +252,20 @@ class Handler(BaseHTTPRequestHandler):
             "best_of": int(_num(data, "best_of", 1, 1, 8)),
             "speed": _num(data, "speed", 1.0, 0.7, 1.3),
             "denoise": bool(data.get("denoise")),
+            "translate_from": None,
         }
+        src = data.get("translate_from")
+        if src:
+            if src not in LANGS:
+                raise ValueError("Langue source non gérée.")
+            from . import translate
+
+            if not translate.available():
+                raise ValueError(
+                    "Traduction non installée : lance « pip install argostranslate » "
+                    "dans l'environnement de Clonimix, puis relance l'interface."
+                )
+            req["translate_from"] = src
         job_id = uuid.uuid4().hex[:12]
         JOBS[job_id] = {"status": "queued", "log": [], "created": time.time()}
         QUEUE.put((job_id, req))

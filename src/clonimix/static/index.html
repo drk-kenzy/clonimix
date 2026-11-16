@@ -82,6 +82,8 @@ details summary{cursor:pointer;color:var(--muted)}
     <div><label for="voice">Voix</label><select id="voice"></select></div>
     <div><label for="lang">Langue</label><select id="lang"></select></div>
   </div>
+  <label class="check"><input type="checkbox" id="trad"><span>Traduire mon texte avant de le dire <small class="sub">(hors ligne ; la première fois pour une langue, un petit modèle d'environ 100 Mo se télécharge)</small></span></label>
+  <div id="tradBox" hidden><label for="srcLang">Mon texte est écrit en</label><select id="srcLang"></select></div>
   <label for="text">Texte à dire</label>
   <textarea id="text" placeholder="Écris ici ce que ta voix doit dire…"></textarea>
 
@@ -121,6 +123,7 @@ details summary{cursor:pointer;color:var(--muted)}
     <span class="sub" id="status"></span>
   </div>
   <div class="msg" id="log"></div>
+  <div class="msg" id="translated" hidden></div>
   <audio id="result" controls hidden></audio>
   <div id="resultLinks" class="row" style="margin-top:6px"></div>
 </section>
@@ -227,7 +230,7 @@ async function loadVoices(select){
   sel.innerHTML = j.voices.map(v=>`<option></option>`).join("");
   [...sel.options].forEach((o,i)=>{ o.value=o.textContent=j.voices[i].name; });
   if(prev && [...sel.options].some(o=>o.value===prev)) sel.value = prev;
-  if($("lang").options.length===0){ $("lang").innerHTML = j.langs.map(l=>`<option>${l}</option>`).join(""); $("lang").value="fr"; }
+  if($("lang").options.length===0){ const opts = Object.entries(j.langs).map(([c,n])=>`<option value="${c}">${n}</option>`).join(""); $("lang").innerHTML = opts; $("srcLang").innerHTML = opts; $("lang").value="fr"; $("srcLang").value="fr"; }
   applyVoiceParams(j.voices);
   $("goBtn").disabled = !j.voices.length;
   window._voices = j.voices;
@@ -237,6 +240,8 @@ function applyVoiceParams(vs){
   if(v && v.params) for(const k of ["exaggeration","cfg_weight","temperature","pause_s"]) if(k in v.params){ $(k).value = v.params[k]; showVal(k); }
 }
 $("voice").onchange = () => applyVoiceParams();
+
+$("trad").onchange = () => { $("tradBox").hidden = !$("trad").checked; if($("trad").checked && $("lang").value==="fr") $("lang").value="en"; };
 
 /* ---------- Curseurs ---------- */
 function showVal(id){ $("v_"+id).textContent = id==="speed" ? "×"+(+$(id).value).toFixed(2) : $(id).value; }
@@ -249,16 +254,19 @@ $("goBtn").onclick = async () => {
   $("goBtn").disabled = true; $("result").hidden = true; $("resultLinks").innerHTML = ""; $("log").className="msg";
   const body = {text, voice:$("voice").value, lang:$("lang").value, denoise:$("denoiseOut").checked};
   for(const k of ["exaggeration","cfg_weight","temperature","pause_s","best_of","speed"]) body[k] = +$(k).value;
+  if($("trad").checked) body.translate_from = $("srcLang").value;
+  $("translated").hidden = true;
   const t0 = Date.now();
   try{
     const {job} = await api("/api/say", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
     for(;;){
       await new Promise(r=>setTimeout(r,1500));
       const j = await api("/api/job/"+job);
-      const labels = {queued:"En attente", loading:"Chargement du modèle", running:"Génération en cours", done:"Terminé", error:"Erreur"};
+      const labels = {queued:"En attente", translating:"Traduction", loading:"Chargement du modèle", running:"Génération en cours", done:"Terminé", error:"Erreur"};
       $("status").textContent = `${labels[j.status]||j.status} · ${fmt((Date.now()-t0)/1000)}`;
       $("log").textContent = (j.log||[]).slice(-6).join("\n");
       if(j.status==="error") throw new Error(j.error);
+      if(j.translated){ $("translated").hidden=false; $("translated").textContent = "Texte dit (traduit) : "+j.translated; }
       if(j.status==="done"){
         $("status").textContent = `Terminé en ${fmt((Date.now()-t0)/1000)} · ${j.seconds} s d'audio`;
         $("result").src = "/api/out/"+j.file; $("result").hidden = false; $("result").play().catch(()=>{});

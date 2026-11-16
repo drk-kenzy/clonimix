@@ -51,6 +51,11 @@ def cmd_say(args: argparse.Namespace) -> int:
 
     reference = voices.reference_path(args.voice)
     text = Path(args.file).read_text(encoding="utf-8") if args.file else args.text
+    if text and getattr(args, "translate_from", None):
+        from .translate import translate
+
+        text = translate(text, args.translate_from, args.lang)
+        print(f"Texte traduit : {text}")
     if not text or not text.strip():
         print("Rien à dire : donne un texte ou --file.", file=sys.stderr)
         return 2
@@ -271,6 +276,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--file", help="Fichier texte à lire à la place")
     p.add_argument("--voice", required=True, help="Nom de la voix")
     p.add_argument("--lang", default="fr", help="Langue (fr, en, es, de, it...)")
+    p.add_argument("--translate-from", help="Langue du texte à traduire avant lecture (ex: fr)")
     p.add_argument("--exaggeration", type=float, help="Expressivité 0.25-1.0 (défaut : 0.5)")
     p.add_argument("--cfg-weight", dest="cfg_weight", type=float, help="Guidage 0-1 (défaut : 0.5)")
     p.add_argument("--temperature", type=float, help="Variabilité (défaut : 0.8)")

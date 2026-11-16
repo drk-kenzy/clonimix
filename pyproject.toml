@@ -20,6 +20,9 @@ dependencies = [
     "setuptools<81",
 ]
 
+[project.optional-dependencies]
+translate = ["argostranslate"]
+
 [project.scripts]
 clonimix = "clonimix.cli:main"
 
