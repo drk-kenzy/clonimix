@@ -1,5 +1,7 @@
 # Clonimix
 
+[English version](README.en.md)
+
 **Clone ta propre voix, en local.** Open source (MIT), sans cloud, sans abonnement, sans clé API.
 Ta voix et tes audios ne quittent jamais ta machine.
 
