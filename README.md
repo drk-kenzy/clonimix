@@ -64,7 +64,7 @@ pip install -e ".[translate]"
 clonimix say "Bonjour, ceci est ma voix." --voice moi --lang en --translate-from fr -o hello.wav
 ```
 
-Un petit modèle (environ 100 Mo) se télécharge la première fois pour chaque langue, puis tout fonctionne hors ligne. La traduction passe par l'anglais, sa qualité varie selon les langues (bonne pour les langues européennes, plus approximative pour d'autres comme le swahili). Ta voix dans une autre langue garde son timbre, mais peut garder un accent.
+Un petit modèle (environ 100 Mo) se télécharge la première fois pour chaque langue, puis tout fonctionne hors ligne. La traduction passe par l'anglais, sa qualité varie selon les langues : bonne pour les langues européennes, plus approximative pour d'autres (swahili), et **peu fiable sur les phrases courtes en japonais** (le modèle peut renvoyer un texte sans rapport). Relis toujours le texte traduit, qui s'affiche dans l'interface. Ta voix dans une autre langue garde son timbre, mais peut garder un accent.
 
 ### Interface web (enregistrer au micro, gérer, générer)
 
